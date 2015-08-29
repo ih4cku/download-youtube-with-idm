@@ -50,7 +50,7 @@ def SendToIdm(title, mp4_url, localpath=None):
     
     localpath = ValidPath(localpath)
     localfn = ValidPath(localfn)
-    idm.SendLinkToIDM(mp4_url, '', '', '', '', '', localpath, localfn, 1)
+    idm.SendLinkToIDM(mp4_url, '', '', '', '', '', localpath, localfn, 2)
 
 class PlaylistParser:
     def __init__(self, url):
