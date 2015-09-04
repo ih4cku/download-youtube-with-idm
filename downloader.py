@@ -44,19 +44,18 @@ def ValidPath(s):
     p = re.compile(r'[\\/:\*\?<>\|]', re.U)
     return p.sub('_', s)
 
-def SendToIdm(title, mp4_url, localpath=None):
+def SendToIdm(title, mp4_url, ref_url='', localpath=None):
     print '-------> Sending to IDM:', title
     localfn = title+'.mp4'
     
-    localpath = ValidPath(localpath)
     localfn = ValidPath(localfn)
-    idm.SendLinkToIDM(mp4_url, '', '', '', '', '', localpath, localfn, 2)
+    idm.SendLinkToIDM(mp4_url, ref_url, '', '', '', '', localpath, localfn, 2)
 
 class PlaylistParser:
     def __init__(self, url):
         self.url = url
         self.resp = requests.get(url, proxies=proxies, verify=False)
-        self.soup = BeautifulSoup(self.resp.content, from_encoding='utf-8')
+        self.soup = BeautifulSoup(self.resp.content, 'lxml', from_encoding='utf-8')
 
     def GetPlaylistTitle(self):
         pl_title = unicode(self.soup.select('#pl-header > div.pl-header-content > h1')[0].string).strip()
@@ -92,7 +91,7 @@ class KvGrabber:
     def __init__(self, video_url):
         self.video_url = video_url
         self.resp = requests.get('http://keepvid.com', params={'url': video_url}, proxies=proxies)
-        self.soup = BeautifulSoup(self.resp.content, from_encoding='utf-8')
+        self.soup = BeautifulSoup(self.resp.content, 'lxml', from_encoding='utf-8')
 
     @staticmethod
     def GetLine(beg):
@@ -121,7 +120,7 @@ class KvGrabber:
                 q = int(p.match(line).group(1))
                 valid_mp4[q] = a['href']
 
-        max_q = 480# max(valid_mp4.keys())
+        max_q = max(valid_mp4.keys())
         max_mp4_url = valid_mp4[max_q]
         assert max_mp4_url, 'Error in getting max quality mp4 url.'
         return max_q, max_mp4_url
@@ -138,7 +137,12 @@ class KvGrabber:
 
 def Download(url, save_path=None):
     if '/playlist?' in url:
-        pl_title, y2b_vid_urls = PlaylistParser(url).Parse()
+    	plparser = PlaylistParser(url)
+    	try:
+	        pl_title, y2b_vid_urls = plparser.Parse()
+    	except Exception, e:
+    		print 'Error url:', plparser.resp.url
+    		raise e
     elif '/watch?' in url:
         pl_title, y2b_vid_urls = None, [url]
     else:
@@ -149,12 +153,12 @@ def Download(url, save_path=None):
         try:
             title, mp4_url = KvGrabber(vid_url).GetDownloadUrl()
             if pl_title:
-                localpath = path.join(u'E:\\Download', pl_title)
+                localpath = ValidPath(path.join(save_path, pl_title))
             else:
                 localpath = None
-            SendToIdm(title, mp4_url, localpath)
+            SendToIdm(title, mp4_url, vid_url, localpath)
         except Exception, e:
-            print '=====!!Error:', vid_url
+            print '!!Error:', vid_url
             faillist.append(vid_url+'\n')
 
     printl()
@@ -171,4 +175,4 @@ if __name__ == '__main__':
         print 'Usage: %s youtube_url' % sys.argv[0]
         sys.exit(-1)
 
-    Download(sys.argv[1])
+    Download(sys.argv[1], 'E:/videos')
