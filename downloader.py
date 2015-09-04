@@ -121,7 +121,7 @@ class KvGrabber:
                 q = int(p.match(line).group(1))
                 valid_mp4[q] = a['href']
 
-        max_q = 480# max(valid_mp4.keys())
+        max_q = max(valid_mp4.keys())
         max_mp4_url = valid_mp4[max_q]
         assert max_mp4_url, 'Error in getting max quality mp4 url.'
         return max_q, max_mp4_url
